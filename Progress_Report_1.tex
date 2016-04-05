@@ -1,0 +1,43 @@
+\documentclass{article}
+
+\usepackage[cm]{fullpage}
+\usepackage{graphicx,wrapfig}
+\usepackage{float}
+\usepackage{amsmath, mathrsfs,amssymb}
+\usepackage{verbatim}
+\usepackage[margin=.5in]{geometry}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+
+\usepackage{multicol}
+\usepackage{lipsum}
+\usepackage{capt-of}
+\usepackage{dsfont}
+
+\usepackage[pdftex,pagebackref=true]{hyperref}
+\usepackage[svgnames,dvipsnames,x11names]{xcolor}
+\hypersetup{
+colorlinks,%
+linkcolor=RoyalBlue2,  % colour of links to eqns, tables, sections, etc
+urlcolor=Sienna4,   % colour of unboxed URLs
+citecolor=RoyalBlue2  % colour of citations linked in text
+}
+
+\usepackage{sectsty}
+\sectionfont{\large}
+
+\def\ci{\perp\!\!\!\perp}   
+
+\title{663 Final Project Outline}
+\author{Jake Coleman and Sayan Patra}
+\date{}
+\begin{document}
+\maketitle
+
+\section{Abstract}
+For our project we will use Neal's 2011 paper, ``MCMC using Hamiltonian dynamics." The paper discusses how to use Hamiltonian dynamics as a sampling scheme to explore target spaces better than traditional Metropolis-Hastings algorithms. The Hamiltonian is the sum of potential energy (based on position) and kinetic energy (based on momentum) - Hamilton's equations relate the two partial derivatives of the Hamiltonian to each other, and define a mapping from the state at time $t$ to the state at time $t + s$. In Hamiltonian Monte Carlo (HMC), we draw auxiliary momentum variables from a Gaussian distribution, and use Hamiltonian dynamics simulations to update the position variable (which follows the distribution of interest). At the end of a user-defined number of steps of simulation, the new variables are accepted or rejected in a Metropolis-Hastings step.\\
+
+In this report we will explore basic HMC with the ``Leapfrog'' discretization method, and follow some examples (such as highly-correlated multivariate Gaussian distributions) comparing HMC to random-walk Metropolis Hastings that show improvement for HMC. We will also implement an extension of HMC proposed by Neal (1994) that uses ``windows'' of states to allow for a high probability of acceptance for all trajectories. Finally, we plan on converting the code to Cython to speed up implementation, and compare to existing HMC packages.
+
+\end{document}
