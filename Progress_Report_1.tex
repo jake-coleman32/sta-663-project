@@ -35,9 +35,24 @@ citecolor=RoyalBlue2  % colour of citations linked in text
 \begin{document}
 \maketitle
 
-\section{Abstract}
+\section*{\LARGE{Abstract}}
 For our project we will use Neal's 2011 paper, ``MCMC using Hamiltonian dynamics." The paper discusses how to use Hamiltonian dynamics as a sampling scheme to explore target spaces better than traditional Metropolis-Hastings algorithms. The Hamiltonian is the sum of potential energy (based on position) and kinetic energy (based on momentum) - Hamilton's equations relate the two partial derivatives of the Hamiltonian to each other, and define a mapping from the state at time $t$ to the state at time $t + s$. In Hamiltonian Monte Carlo (HMC), we draw auxiliary momentum variables from a Gaussian distribution, and use Hamiltonian dynamics simulations to update the position variable (which follows the distribution of interest). At the end of a user-defined number of steps of simulation, the new variables are accepted or rejected in a Metropolis-Hastings step.\\
 
 In this report we will explore basic HMC with the ``Leapfrog'' discretization method, and follow some examples (such as highly-correlated multivariate Gaussian distributions) comparing HMC to random-walk Metropolis Hastings that show improvement for HMC. We will establish the superiority of the HMC method over regular random walk sampling schemes in the case of higher dimensions. We will also implement an extension of HMC proposed by Neal (1994) that uses ``windows'' of states to allow for a high probability of acceptance for all trajectories. Finally, we plan on converting the code to Cython or JIT to speed up implementation, and compare to existing HMC packages.
+
+\section*{\LARGE{Outline}}
+
+\section{Introduction}
+\section{Hamiltonian Monte Carlo}
+\subsection{Discretization - Leapfrog Method}
+\subsection{Tuning Parameters}
+\section{Comparison to Metropolis-Hastings}
+\subsection{Improvements in High Dimensions}
+\section{Extension - ``Windowed'' States}
+\subsection{Performance Comparison to Standard HMC}
+\section{Speed-up With Cython Implementation}
+\section{Conclusion}
+
+
 
 \end{document}
