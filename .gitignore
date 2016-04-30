@@ -1,6 +1,7 @@
-Progress_Report_1.aux
-Progress_Report_1.log
-Progress_Report_1.out
-Progress_Report_1.synctex.gz
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.brf
 .DS_Store
 .ipynb_checkpoints/
