@@ -3,7 +3,7 @@ Final project repository for STA 663
 
 Team: Jacob Coleman and Sayan Patra
 
-Project: A Comparative Exploration of HMC With Windowed Proposals
+Project: An Exploration of Hamiltonian Monte Carlo
 
 Progress Report File: progress_report_coleman_patra.pdf
 

@@ -31,19 +31,19 @@ citecolor=RoyalBlue2  % colour of citations linked in text
 
 \def\ci{\perp\!\!\!\perp}   
 
-\title{663 Final Project Progress Report}
+\title{An Exploration of Hamiltonian Monte Carlo}
 \author{Jake Coleman and Sayan Patra}
 \date{}
 \begin{document}
 \maketitle
 
 \section{Abstract}
-For our project we will use Neal's 2011 paper, ``MCMC using Hamiltonian dynamics." The paper discusses how to use Hamiltonian dynamics as a sampling scheme to explore target spaces better than traditional Metropolis-Hastings algorithms. The Hamiltonian is the sum of potential energy (based on position) and kinetic energy (based on momentum) - Hamilton's equations relate the two partial derivatives of the Hamiltonian to each other, and define a mapping from the state at time $t$ to the state at time $t + s$. In Hamiltonian Monte Carlo (HMC), we draw auxiliary momentum variables from a Gaussian distribution, and use Hamiltonian dynamics simulations to update the position variable (which follows the distribution of interest). At the end of a user-defined number of steps of simulation, the new variables are accepted or rejected in a Metropolis-Hastings step.\\
+For our project we will use Neal's 2011 paper, ``MCMC using Hamiltonian dynamics" \cite{main}. The paper discusses how to use Hamiltonian dynamics as a sampling scheme to explore target spaces better than traditional Metropolis-Hastings algorithms. The Hamiltonian is the sum of potential energy (based on position) and kinetic energy (based on momentum) - Hamilton's equations relate the two partial derivatives of the Hamiltonian to each other, and define a mapping from the state at time $t$ to the state at time $t + s$. In Hamiltonian Monte Carlo (HMC), we draw auxiliary momentum variables from a Gaussian distribution, and use Hamiltonian dynamics simulations to update the position variable (which follows the distribution of interest). At the end of a user-defined number of steps of simulation, the new variables are accepted or rejected in a Metropolis-Hastings step.\\
 
-In this report we will explore basic HMC with the ``Leapfrog'' discretization method, and follow some examples (such as highly-correlated multivariate Gaussian distributions) comparing HMC to random-walk Metropolis Hastings that show improvement for HMC. We will establish the superiority of the HMC method over regular random walk sampling schemes in the case of higher dimensions. We will also implement an extension of HMC proposed by Neal (1994) that uses ``windows'' of states to allow for a high probability of acceptance for all trajectories. Finally, we plan on converting the code to Cython or JIT to speed up implementation, and compare to existing HMC packages.
+In this report we will explore basic HMC with the ``Leapfrog'' discretization method, and follow some examples (such as highly-correlated multivariate Gaussian distributions) comparing HMC to random-walk Metropolis Hastings that show improvement for HMC. We will establish the superiority of the HMC method over regular random walk sampling schemes in the case of higher dimensions. We will also implement an extension of HMC proposed by Neal (1994) that uses ``windows'' of states to allow for a high probability of acceptance for all trajectories. Finally, we demonstrated a method for simple parallelization that can increase speed by up to a factor of two
 
 \section{Introduction}
-Markov Chain Monte Carlo (MCMC) has been used to simulate distributions since the landmark paper by Metropolis et al. (1953). In this report we follow Neal (2011) in his exploration of Hamiltonian Monte Carlo (HMC), a variant of MCMC which utilizes properties physical properties of molecules known as ``\textit{Hamiltonian dynamics}.'' Hamiltonian dynamics rely on deterministic motion of molecules described by Newton's laws of motion, and were only applied as part of an MCMC algorithm in 1987 by Duane, Kennedy, Pendleton, and Roweth, with statistically applications beginning in 1996 with Neal's paper on neural networks.  The marriage of deterministic molecular simulations and MCMC allows fast exploration of state spaces of distributions while avoiding random walks necessary in Metropolis-Hasting algorithms.\\
+Markov Chain Monte Carlo (MCMC) has been used to simulate distributions since the landmark paper by Metropolis et al. in 1953 \cite{metrop}. In this report we follow Neal (2011) \cite{main} in his exploration of Hamiltonian Monte Carlo (HMC), a variant of MCMC which utilizes properties physical properties of molecules known as ``\textit{Hamiltonian dynamics}.'' Hamiltonian dynamics rely on deterministic motion of molecules described by Newton's laws of motion, and were only applied as part of an MCMC algorithm in 1987 by Duane, Kennedy, Pendleton, and Roweth \cite{og_hmc}, with statistically applications beginning in 1996 with Neal's use on neural networks \cite{neural}.  The marriage of deterministic molecular simulations and MCMC allows fast exploration of state spaces of distributions while avoiding random walks necessary in Metropolis-Hasting algorithms.\\
 
 In the subsequent sections we describe the Hamiltonian dynamics (section $3$) and how to construct a MCMC method using them (section $4$). Like in other Markov Chain methods HMC has its issues of tuning, which are discussed briefly in section $4$. Section $5$ compares HMC to Metropolis random-walk, in both low and high dimensions. In section $6$ a variation of HMC is presented, where the acceptance rate of HMC is shown to be increased by looking at the ``windows" of states at the beginning and the end of the trajectories.
 
@@ -121,7 +121,7 @@ The algorithm is essentially a half-step in the momentum (auxiliary) variables, 
 
 Because \ref{eq:3.7} uses mere transformations, the leapfrog method preserves volume exactly. One achieves reversibility by simply negating p due to its symmetry. These two aspects are crucial properties necessary for MCMC, but are not discussed in depth here.
 
-\section{Hamiltonian Monte Carlo}
+\section{Background - Hamiltonian Monte Carlo}
 Recall that the main objective of MCMC is to simulation variables from target distributions. In our case, the variables of interest will be our momentum variables $q$, with target distributions uniquely determined by the potential energy function $U(q)$. Momentum variables $p$ are introduced artificially as auxiliary random variables in order to complete the system dynamics. The following sections describe how to translate the target density into potentially energy for use in the Hamiltonian, and the provide the complete HMC algorithm.\\
 
 \subsection{Probability and the Hamiltonian}\label{prob}
@@ -172,7 +172,7 @@ Each iteration of the HMC algorithm has two steps. Only the momentum is changed 
 HMC satisfies the ``detailed balance" criterion and hence leaves the canonical distribution invariant. The algorithm is also ``ergodic" and therefore explores the entire sample space.
 
 \section{Illustration of HMC and its benefits}
-In this section we will use several examples to demonstrate the potential of the HMC algorithm described in previous section. We will compare these to random-walk Metropolis mostly.
+In this section we will use several examples to demonstrate the potential of the HMC algorithm described in previous section. We will compare these to random-walk Metropolis mostly. This section closely follows Neal (2011) \cite{main}, as we recreate his comparison plots.
 
 \subsection{Trajectories for a two-dimensional problem}
 In this example we are sampling from a two dimensional gaussian distribution with zero mean, standard deviation one and correlation $0.95$. The momentum variables are generated from an independent standard two dimensional bivariate normal. Therefore the Hamitonian has the form 
@@ -221,8 +221,6 @@ In this section we compare the trajectories between HMC and simple random-walk M
 \label{Fig:3}
 \end{figure}
 
-
-
 Left image of the figure(\ref{Fig:3}) shows every 20th state from multiple iteration of random-walk Metropolis, with a bivaraite Gaussian proposal distribution (independent with standard deviations the same as step size for HMC, $\epsilon = 0.18$). The rejection rate for the random-walk proposals is $0.38$. Even with comparable steps, it is clear that HMC explores the target space much better than Metropolis, which is hampered by high correlation between the two variables.\\
 
 Figure(\ref{Fig:4}) illustrates the result for $200$ HMC iterations and random-walk Metropolis iterations (thinned by 20 iterations). It is evident the autocorrelation between samples is much less in HMC and hence the state space is traversed more uniformly.
@@ -251,7 +249,8 @@ Figure(\ref{100d_iters}) shows the sample iterations for the last dimension (and
 
 Even when the target distributions have no correlations between variables, the high dimensionality causes the Metropolis sampler to be highly autocorrelated. Had the sampler not been thinned, the autocorrelation would have been even worse.\\
 
-Perhaps more disturbing are the overall characteristics of the sampled distributions. We expect all sampled variables to have mean zero, and standard deviation to lie along the line y=x. Figures(\ref{100d_means}) and (\ref{100d_sds}) show the results for Metropolis and HMC.
+\subsubsection{Tests}
+Here we raise the dimension to 100, sampling from independent multivariate Gaussians with increasing standard deviations proportional to dimension number. We expect all sampled variables to have mean zero, and standard deviation to lie along the line y=x. Figures(\ref{100d_means}) and (\ref{100d_sds}) show the results for Metropolis and HMC. Note that this serves as a test - we know the theoretical target distribution, so we can see how the sampled summary statistics compare in order to assess how well HMC is working.
 
 \begin{figure}[H]
 \centering
@@ -269,10 +268,55 @@ Perhaps more disturbing are the overall characteristics of the sampled distribut
 
 Clearly, Metropolis fails us in the higher dimensions in this case. As the dimension increases (along with the standard deviations), the means fluctuate wildly. The standard deviations of the sampled values stray from their true values, and become more erratic in the higher dimensions. HMC shows neither of these traits - all the means are close to zero, and the sampled standard deviations lie close to the line y=x even in higher dimensions. Even with very simple, independent distributions, Metropolis fails in the larger dimensions where HMC succeeds  just as well as in the lower dimensions. 
 
-\section{Windowed States}
-For the final report, we plan on including a comparison to a modified version of HMC that helps obtain a higher probability of acceptance. This method, introduced by Neal in 1994, uses ``windows'' of states to probabilistically map the pair $(q,p)$ to a sequence of pairs, perform similar accept-reject steps, and then probabilistically map back. Following the 1994 paper, we will show improved efficiency of the algorithm.\\
+\section{Application to Real Data}
+For our application to real data, we will demonstrate how the algorithm can be used to find the posterior values for parameters in simple linear regression. The model is as follows:
 
-The standard algorithm is as follows. For $1 \geq W \leq L + 1$ and $K$ randomly chosen from $\{0,...,W-1\}$, beginning at the initial state, perform $K$ leapfrog steps a random direction, and then $L - K$ from the initial state in the opposite direction. The reject window are the states from $-K$ to $-K + W - 1$, and the accept window are the states from $L-K-W+1$ to $L-K$. Note that each window is $W$ long and the whole leapfrog space is length $L$. The accept probability is the sum of the energy of the accept window divided by the sum of the energy of the reject window, chosen via a standard metropolis step. From the selected window, a specific state is then probability chosen with weight equal to its energy. Neal (1994) also offers a method which does not require a second pass through the chosen window. We apply that algorithm in our report - it is given explicitly below.\\
+\begin{align*}
+Y&\sim \mathcal{N}(X\beta, \phi^{-1}\mathcal{I})\\
+\beta&\sim \mathcal{N}(0,\tau^{-1}\mathcal{I})\\
+\phi&\sim \mathcal{G}(a,b)
+\end{align*}
+
+With hyperparameters $\tau,a,b$ = 0.001 to keep the priors for $\beta$, and  $\phi$ flat. We are most interested in the regression parameters $\beta$ - from frequentist statistics, we know that the least squares estimate $\hat{\beta} = (X^TX)^{-1}X^TY$. If our MCMC works correctly, it should produce a posterior value centered around $\hat{\beta}$ - we can use this as a test. Before we perform HMC, however, we need the potential energy $U(\theta)$ and its gradient. In our case, $\theta = [\phi, \beta]$, with $\beta$ $p$-dimensional. Recall that $U(\theta) = -\text{log}(p(\theta))$ - in our case, $p(\theta) \propto \pi(\theta)L(Y\mid\theta)$, the posterior of $\theta\mid Y$. The derivation of $U(\theta)$ is below.
+
+\begin{align*}
+\L(\theta\mid Y) &\propto L(Y\mid \phi,\beta)\pi(\beta)\pi(\phi)\\
+&= \phi^{n/2}e^{-\frac{1}{2}\phi(Y-X\beta)^T(Y-X\beta)}e^{-\frac{1}{2}(\beta^T\tau\mathcal{I}\beta}\phi^{a-1}e^{-\phi b}\\
+log(\theta\mid Y) &\propto (\frac{n}{2} + a - 1)\text{log}\phi - \frac{1}{2}\phi[\beta^TX^TX\beta - 2Y^TX\beta + Y^TY] - \frac{1}{2}\beta^T\tau\mathcal{I}\beta - \phi b\\
+U(\theta) &= (-\frac{n}{2} - a + 1)\text{log}\phi + \phi b + \frac{1}{2}\{\beta^T[\phi X^TX + \tau\mathcal{I}]\beta - 2\phi Y^TX\beta + Y^TY\}
+\end{align*}
+
+From here we can get the partial derivatives
+\begin{align*}
+\frac{\partial U}{\partial \phi} &= \frac{-n - 2a + 2}{2\phi} + b + \frac{1}{2}\{\beta^T[X^TX]\beta - 2Y^TX\beta + Y^TY\}\\
+\frac{\partial U}{\partial \beta} &= \beta^T[\phi X^TX + \tau\mathcal{I}] - \phi Y^TX
+\end{align*}
+
+We performed this analysis on a dataset of car speeds and stopping distances from 1920 \cite{cars}. We regressed stopping distance on speed, including an intercept - thus, $\beta$ is 2-dimensional here. We intended on sampling both $\phi$ and $\beta$, but $\phi$ must be positive and required an extension of HMC that we were unable to provide for this report. Thus, we fixed $phi$ at $(1/15)^2$ and focused on recovering the regression coefficients $\beta$. Figure ~\ref{betas} shows 1,000 draws via HMC, starting from the point [0,0].
+
+\begin{figure}[H]
+\centering
+  \includegraphics[width=1\linewidth]{hmc_betas.png}
+  \caption{Posterior draws of linear regression coefficients $\beta$ for the cars dataset.}
+\label{betas}
+\end{figure}
+
+As we can see from Figure~\ref{betas}, there is good convergence to around $-17$ for the intercept, and $4$ for the slope. However, we also see that it takes some iterations for the slope posterior to converge. To adjust for this, we take a burn-in of 200 iterations for both parameters. To test to see how HMC is performing, we compare our estimated regression line with the build-in regression tools that perform frequentist analysis.
+
+\begin{figure}[H]
+\centering
+  \includegraphics[width=.7\linewidth]{hmc_regression.png}
+  \caption{Cars dataset with regression lines.  HMC performs well in finding the correct posterior values for $\beta$}
+\label{regress}
+\end{figure}
+
+Figure~\ref{regress} shows that the frequentist regression line from the Scikit package and our posterior estimate are so close they are almost overlapping. (Part of this is due to the fact that we have very flat priors - improperly flat would have been the frequentist regression). This demonstrates the success of HMC, and we conclude that it does indeed perform well on real data.
+
+
+\section{Windowed States}
+For the final report, we plan on including a comparison to a modified version of HMC that helps obtain a higher probability of acceptance. This method, introduced by Neal in 1994 \cite{neal_94}, uses ``windows'' of states to probabilistically map the pair $(q,p)$ to a sequence of pairs, perform similar accept-reject steps, and then probabilistically map back. Following the 1994 paper, we will show improved efficiency of the algorithm.\\
+
+The standard algorithm is as follows. For $1 \geq W \leq L + 1$ and $K$ randomly chosen from $\{0,...,W-1\}$, beginning at the initial state, perform $K$ leapfrog steps a random direction, and then $L - K$ from the initial state in the opposite direction. The reject window are the states from $-K$ to $-K + W - 1$, and the accept window are the states from $L-K-W+1$ to $L-K$. Note that each window is $W$ long and the whole leapfrog space is length $L$. The accept probability is the sum of the energy of the accept window divided by the sum of the energy of the reject window, chosen via a standard metropolis step. From the selected window, a specific state is then probability chosen with weight equal to its energy. Neal (1994)\cite{neal_94} also offers a method which does not require a second pass through the chosen window. We apply that algorithm in our report - it is given explicitly below.\\
 
 \textbf{Algorithm - Efficient Windowed States}
 \begin{enumerate}
@@ -289,7 +333,7 @@ The standard algorithm is as follows. For $1 \geq W \leq L + 1$ and $K$ randomly
 \item Choose $C^{W}_{\mathcal{A}}$ with probability $-\text{log}\left(\frac{\sum_{X\in\mathcal{A}}\text{exp}(-H(X))}{\sum_{X\in\mathcal{R}}\text{exp}(-H(X))}\right)$ and $C^{W}_{\mathcal{R}}$ with 1 minus that probability.
 \end{enumerate}
 
-To demonstrate that this works as effectively as standard HMC, we plot the first 200 iterations with windowed HMC next to those from standard HMC. The target distribution was a bivariate Gaussian with standard deviations of one and covariances of 0.98.
+To demonstrate that this works as effectively as standard HMC, we plot the first 200 iterations with windowed HMC next to those from standard HMC. The target distribution was a bivariate Gaussian with standard deviations of one and covariances of 0.98. This also serves as a test to make sure the windowed HMC is working - the samples should be clustered around zero (as they are).
 
 \begin{figure}[H]
 \centering
@@ -321,39 +365,27 @@ To demonstrate improvement in speed via parallelization, we ran 10 chains in the
 \label{parallel}
 \end{figure}
 
+\section{Conclusion}
+In this report we followed Neal's 2011 paper \cite{main} in our exploration of Hamiltonian Monte Carlo, or HMC. We reproduced his plots demonstrating the effectiveness of HMC on correlated and high-dimensional data as compared to simpler Metropolis methods. Along the way, we provided tests to make sure HMC recovered the true values of target distributions. Applying HMC to real data, we found the regression line of stopping distance vs speed of cars and compared it to the frequentist version from built-in Python packages. In an extension, we implemented the modified algorithm suggested by Neal \cite{neal_94} that added a ``window" of states to increase acceptance probability especially in edge cases. We showed that the windowed algorithm was as effective as regular HMC and showed improved acceptance probability even in low dimensions - improvements should only become higher in larger dimensions. Finally, we demonstrated a way in which the algorithm might be parallelized, getting a speedup of up to double. HMC is a valuable tool for bayesian analysts, and we look forward to considering it as an implementation tool when aiming to sample from target distributions.
 
-\section{Application to Real Data}
-For our application to real data, we will demonstrate how the algorithm can be used to find the posterior values for parameters in simple linear regression. The model is as follows:
-
-\begin{align*}
-Y&\sim \mathcal{N}(X\beta, \phi^{-1}\mathcal{I})\\
-\beta&\sim \mathcal{N}(0,\tau^{-1}\mathcal{I})\\
-\phi&\sim \mathcal{G}(a,b)
-\end{align*}
-
-With hyperparameters $\tau,a,b$ = 0.1 to keep the priors for $\beta, \phi$ reasonably flat. We are most interested in the regression parameters $\beta$ - from frequentist statistics, we know that the least squares estimate $\hat{\beta} = (X^TX)^{-1}X^TY$. If our MCMC works correctly, it should produce a posterior value centered around $\hat{\beta}$ - we can use this as a test. Before we perform HMC, however, we need the potential energy $U(\theta)$ and its gradient. In our case, $\theta = [\phi, \beta]$, with $\beta$ $p$-dimensional. Recall that $U(\theta) = -\text{log}(p(\theta))$ - in our case, $p(\theta) \propto \pi(\theta)L(Y\mid\theta)$, the posterior of $\theta\mid Y$. The derivation of $U(\theta)$ is below.
-
-\begin{align*}
-\L(\theta\mid Y) &\propto L(Y\mid \phi,\beta)\pi(\beta)\pi(\phi)\\
-&= \phi^{n/2}e^{-\frac{1}{2}\phi(Y-X\beta)^T(Y-X\beta)}e^{-\frac{1}{2}(\beta^T\tau\mathcal{I}\beta}\phi^{a-1}e^{-\phi b}\\
-log(\theta\mid Y) &\propto (\frac{n}{2} + a - 1)\text{log}\phi - \frac{1}{2}\phi[\beta^TX^TX\beta - 2Y^TX\beta + Y^TY] - \frac{1}{2}\beta^T\tau\mathcal{I}\beta - \phi b\\
-U(\theta) &= (-\frac{n}{2} - a + 1)\text{log}\phi + \phi b + \frac{1}{2}\{\beta^T[\phi X^TX + \tau\mathcal{I}]\beta - 2\phi Y^TX\beta\}
-\end{align*}
-
-From here we can get the partial derivatives
-\begin{align*}
-\frac{\partial U}{\partial \phi} &= \frac{-n - 2a + 2}{2\phi} + b\\
-\frac{\partial U}{\partial \beta} &= \beta^T[\phi X^TX + \tau\mathcal{I}] - \phi Y^TX
-\end{align*}
 %\begin{comment}
 \begin{thebibliography}{99} % Bibliography - this is intentionally simple in this template
 
-\bibitem[1]NNeal, R., M.: MCMC using Hamiltonian dynamics 
-\newblock arXiv:1206.1901v1 5(2)
-(Jun 2012)
-\bibitem[2]LLeimkuhler, B., Reikh, S.: Simulating Hamiltonian dynamics 
-\newblock Cambridge University Press
-(2004)
+\bibitem{og_hmc} Duane, Simon; A.D. Kennedy, Brian J. Pendleton, and Duncan, Roweth (1987). "Hybrid Monte Carlo". Physics Letters B 195 (2): 216?222
+
+\bibitem{cars} Ezekiel, M. (1930). \textit{Methods of Correlation Analysis}. Wiley. [https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/cars.html]
+
+\bibitem{sim_hmc} Leimkuhler, B., Reikh, S. (2004). ``Simulating Hamiltonian dynamics".  Cambridge University Press.
+
+\bibitem{metrop}  Metropolis, N.; Rosenbluth, A.W.; Rosenbluth, M.N.; Teller, A.H.; Teller, E. (1953). ``Equations of State Calculations by Fast Computing Machines''. Journal of Chemical Physics 21 (6): 1087?1092.
+
+\bibitem{neal94} Neal, R. M. (1994). ``An improved acceptance procedure for the hybrid Monte Carlo algorithm".
+\newblock Journal of Computational Physics,  vol. 111, pp. 194-203
+
+\bibitem{neural} Neal R.M. (1996). ``Bayesian Learning for Neural Networks." Lecture Notes in Statistics, No. 118. Springer-Verlag.
+
+\bibitem{main} Neal, R., M. (2011). ``MCMC using Hamiltonian dynamics".  arXiv:1206.1901v1 5(2),.
+
 \end{thebibliography}
 %\end{comment}
 
