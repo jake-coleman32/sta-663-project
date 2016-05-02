@@ -10,3 +10,5 @@ Progress Report File: progress_report_coleman_patra.pdf
 Project Folder: coleman_jacob_patra_sayan_neal_2011_an_exploration_of_hmc
 
 iPython Notebook File: sta663_ project_code.ipynb
+
+Note: Must be run with python 3, and must have jupyter installed. 

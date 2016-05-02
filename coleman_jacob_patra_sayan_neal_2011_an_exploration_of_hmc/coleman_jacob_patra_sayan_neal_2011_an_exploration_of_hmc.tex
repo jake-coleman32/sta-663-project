@@ -43,7 +43,7 @@ For our project we will use Neal's 2011 paper, ``MCMC using Hamiltonian dynamics
 In this report we will explore basic HMC with the ``Leapfrog'' discretization method, and follow some examples (such as highly-correlated multivariate Gaussian distributions) comparing HMC to random-walk Metropolis Hastings that show improvement for HMC. We will establish the superiority of the HMC method over regular random walk sampling schemes in the case of higher dimensions. We will also implement an extension of HMC proposed by Neal (1994) that uses ``windows'' of states to allow for a high probability of acceptance for all trajectories. Finally, we demonstrated a method for simple parallelization that can increase speed by up to a factor of two
 
 \section{Introduction}
-Markov Chain Monte Carlo (MCMC) has been used to simulate distributions since the landmark paper by Metropolis et al. in 1953 \cite{metrop}. In this report we follow Neal (2011) \cite{main} in his exploration of Hamiltonian Monte Carlo (HMC), a variant of MCMC which utilizes properties physical properties of molecules known as ``\textit{Hamiltonian dynamics}.'' Hamiltonian dynamics rely on deterministic motion of molecules described by Newton's laws of motion, and were only applied as part of an MCMC algorithm in 1987 by Duane, Kennedy, Pendleton, and Roweth \cite{og_hmc}, with statistically applications beginning in 1996 with Neal's use on neural networks \cite{neural}.  The marriage of deterministic molecular simulations and MCMC allows fast exploration of state spaces of distributions while avoiding random walks necessary in Metropolis-Hasting algorithms.\\
+Markov Chain Monte Carlo (MCMC) has been used to simulate distributions since the landmark paper by Metropolis et al. in 1953 \cite{metrop}. In this report we follow Neal (2011) \cite{main} in his exploration of Hamiltonian Monte Carlo (HMC), a variant of MCMC which utilizes physical properties of molecules known as ``\textit{Hamiltonian dynamics}.'' Hamiltonian dynamics rely on deterministic motion of molecules described by Newton's laws of motion, and were only applied as part of an MCMC algorithm in 1987 by Duane, Kennedy, Pendleton, and Roweth \cite{og_hmc}, with statistical applications beginning in 1996 with Neal's use on neural networks \cite{neural}.  The marriage of deterministic molecular simulations and MCMC allows fast exploration of state spaces of distributions while avoiding random walks necessary in Metropolis-Hasting algorithms.\\
 
 In the subsequent sections we describe the Hamiltonian dynamics (section $3$) and how to construct a MCMC method using them (section $4$). Like in other Markov Chain methods HMC has its issues of tuning, which are discussed briefly in section $4$. Section $5$ compares HMC to Metropolis random-walk, in both low and high dimensions. In section $6$ a variation of HMC is presented, where the acceptance rate of HMC is shown to be increased by looking at the ``windows" of states at the beginning and the end of the trajectories.
 
@@ -110,12 +110,12 @@ Euler's method is standard method to approximate the solution to a system of dif
 \subsubsection{Leapfrog Method}
 The \textit{leapfrog} method works as follows,
 \begin{equation}
-\begin{alignedat}{2}
-p_i(t+\epsilon/2) &=  p_i(t) - (\epsilon/2)\frac{p_i}{dt}(t) &&=   p_i(t) - (\epsilon/2)\frac{\partial U}{\partial q_i}(q(t))\\
-q_i(t+\epsilon)   &= q_i(t) + (\epsilon/2)\frac{p_i}{dt}(t + \epsilon/2) &&=  q_i(t) + \epsilon \frac{p_i(t+\epsilon/2)}{m_i}\\
-p_i(t+\epsilon) &= p_i(t + \epsilon/2) - (\epsilon/2)\frac{p_i}{dt}(t + \epsilon) &&= p_i(t+\epsilon/2) - (\epsilon/2)\frac{\partial U}{\partial q_i}(q(t+\epsilon))
+\begin{alignedat}{4}
+p_i(t+\epsilon/2) &=  p_i(t) &&+ (\epsilon/2)\frac{dp_i}{dt}(t) &&=   p_i(t) &&- (\epsilon/2)\frac{\partial U}{\partial q_i}(q(t))\\
+q_i(t+\epsilon)   &= q_i(t) &&+ (\epsilon/2)\frac{dq_i}{dt}(t + \epsilon/2) &&=  q_i(t) &&+ \epsilon \frac{p_i(t+\epsilon/2)}{m_i}\\
+p_i(t+\epsilon) &= p_i(t + \epsilon/2) &&+ (\epsilon/2)\frac{p_i}{dt}(t + \epsilon) &&= p_i(t+\epsilon/2) &&- (\epsilon/2)\frac{\partial U}{\partial q_i}(q(t+\epsilon))
 \label{eq:3.7}
-\end{alignedat}{2}
+\end{alignedat}{4}
 \end{equation}
 The algorithm is essentially a half-step in the momentum (auxiliary) variables, a full step in the position variables using the updated momentum, and then another half-step in the momentum using the updated position. This is for one leapfrog step - typically there are many leapfrog steps per iteration. For more steps, full momentum steps are taken in between position steps and the final half-momentum step.\\
 
@@ -209,7 +209,7 @@ As in other methods, tuning HMC is important. Figure(\ref{Fig:2}) demonstrates w
 \label{Fig:2}
 \end{figure}
 
-The step size is mostly controlled by the need to keep the smaller steps ize under control. If larger step size were used the oscillation would be larger in the hamiltonian values. At a critical step size ($\epsilon =0.45$), the trajectory becomes unstable and the value of Hamiltonian grows without bound (figure \ref{Fig:2}). As long as the steps ize is less than that, the error in the hamiltonian stays bounded regardless of the number of leapfrog steps.
+The step size is mostly controlled by the need to keep the smaller step size under control. If larger step size were used the oscillation would be larger in the hamiltonian values. At a critical step size ($\epsilon =0.45$), the trajectory becomes unstable and the value of Hamiltonian grows without bound (figure \ref{Fig:2}). As long as the step size is less than that, the error in the hamiltonian stays bounded regardless of the number of leapfrog steps.
 
 
 \subsection{Sampling from a two-dimensional distribution}
@@ -316,7 +316,7 @@ Figure~\ref{regress} shows that the frequentist regression line from the Scikit 
 \section{Windowed States}
 For the final report, we plan on including a comparison to a modified version of HMC that helps obtain a higher probability of acceptance. This method, introduced by Neal in 1994 \cite{neal_94}, uses ``windows'' of states to probabilistically map the pair $(q,p)$ to a sequence of pairs, perform similar accept-reject steps, and then probabilistically map back. Following the 1994 paper, we will show improved efficiency of the algorithm.\\
 
-The standard algorithm is as follows. For $1 \geq W \leq L + 1$ and $K$ randomly chosen from $\{0,...,W-1\}$, beginning at the initial state, perform $K$ leapfrog steps a random direction, and then $L - K$ from the initial state in the opposite direction. The reject window are the states from $-K$ to $-K + W - 1$, and the accept window are the states from $L-K-W+1$ to $L-K$. Note that each window is $W$ long and the whole leapfrog space is length $L$. The accept probability is the sum of the energy of the accept window divided by the sum of the energy of the reject window, chosen via a standard metropolis step. From the selected window, a specific state is then probability chosen with weight equal to its energy. Neal (1994)\cite{neal_94} also offers a method which does not require a second pass through the chosen window. We apply that algorithm in our report - it is given explicitly below.\\
+The standard algorithm is as follows. For $1 \leq W \leq L + 1$ and $K$ randomly chosen from $\{0,...,W-1\}$, beginning at the initial state, perform $K$ leapfrog steps a random direction, and then $L - K$ from the initial state in the opposite direction. The reject window are the states from $-K$ to $-K + W - 1$, and the accept window are the states from $L-K-W+1$ to $L-K$. Note that each window is $W$ long and the whole leapfrog space is length $L$. The accept probability is the sum of the energy of the accept window divided by the sum of the energy of the reject window, chosen via a standard metropolis step. From the selected window, a specific state is then probability chosen with weight equal to its energy. Neal (1994)\cite{neal_94} also offers a method which does not require a second pass through the chosen window. We apply that algorithm in our report - it is given explicitly below.\\
 
 \textbf{Algorithm - Efficient Windowed States}
 \begin{enumerate}
